@@ -101,7 +101,7 @@ class LanguagePack::Helpers::BundlerWrapper
   def initialize(options = {})
     @bundler_tmp          = Pathname.new(Dir.mktmpdir)
     @fetcher              = options[:fetcher]      || LanguagePack::Fetcher.new(LanguagePack::Base::VENDOR_URL) # coupling
-    @gemfile_path         = options[:gemfile_path] || Pathname.new("./Gemfile")
+    @gemfile_path         = options[:gemfile_path] || Pathname.new(env("BUNDLE_GEMFILE") || "./Gemfile")
     @gemfile_lock_path    = Pathname.new("#{@gemfile_path}.lock")
 
     @version = self.class.detect_bundler_version(contents: @gemfile_lock_path.read(mode: "rt"))
@@ -223,7 +223,7 @@ class LanguagePack::Helpers::BundlerWrapper
   end
 
   def bundler_version_escape_valve!
-    topic("Removing BUNDLED WITH version in the Gemfile.lock")
+    topic("Removing BUNDLED WITH version in the #{@gemfile_lock_path}")
     contents = File.read(@gemfile_lock_path, mode: "rt")
     File.open(@gemfile_lock_path, "w") do |f|
       f.write contents.sub(/^BUNDLED WITH$(\r?\n)   (?<major>\d+)\.\d+\.\d+/m, '')

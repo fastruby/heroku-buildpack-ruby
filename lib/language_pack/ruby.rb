@@ -141,7 +141,7 @@ WARNING
       build_bundler
       # TODO post_bundler might need to be done in a new layer
       bundler.clean
-      gem_layer.metadata[:gems] = Digest::SHA2.hexdigest(File.read("Gemfile.lock"))
+      gem_layer.metadata[:gems] = Digest::SHA2.hexdigest(File.read(gemfile_lock_path))
       gem_layer.metadata[:stack] = @stack
       gem_layer.metadata[:ruby_version] = run_stdout(%q(ruby -v)).strip
       gem_layer.metadata[:rubygems_version] = run_stdout(%q(gem -v)).strip
@@ -759,7 +759,7 @@ BUNDLE
       if bundler.windows_gemfile_lock?
         log("bundle", "has_windows_gemfile_lock")
 
-        File.unlink("Gemfile.lock")
+        File.unlink(gemfile_lock_path)
         ENV.delete("BUNDLE_DEPLOYMENT")
 
         warn(<<~WARNING, inline: true)
@@ -796,7 +796,7 @@ BUNDLE
 
         # we need to set BUNDLE_CONFIG and BUNDLE_GEMFILE for
         # codon since it uses bundler.
-        env_vars["BUNDLE_GEMFILE"] = "#{pwd}/Gemfile"
+        env_vars["BUNDLE_GEMFILE"] = "#{pwd}/#{gemfile_path}"
         env_vars["BUNDLE_CONFIG"] = "#{pwd}/.bundle/config"
         env_vars["CPATH"] = noshellescape("#{yaml_include}:$CPATH")
         env_vars["CPPATH"] = noshellescape("#{yaml_include}:$CPPATH")
@@ -1324,5 +1324,17 @@ MESSAGE
     @bundler_cache.clear(stack)
     # need to reinstall language pack gems
     install_bundler_in_app(slug_vendor_base)
+  end
+
+  def current_gemfile
+    env("BUNDLE_GEMFILE") || "Gemfile"
+  end
+
+  def gemfile_path
+    Pathname.new(current_gemfile)
+  end
+
+  def gemfile_lock_path
+    Pathname.new("#{current_gemfile}.lock")
   end
 end
