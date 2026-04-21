@@ -24,7 +24,7 @@ class LanguagePack::Ruby < LanguagePack::Base
   # detects if this is a valid Ruby app
   # @return [Boolean] true if it's a Ruby app
   def self.use?
-    File.exist?("Gemfile")
+    File.exist?("Gemfile.next")
   end
 
   def self.bundler
@@ -141,7 +141,7 @@ WARNING
       build_bundler
       # TODO post_bundler might need to be done in a new layer
       bundler.clean
-      gem_layer.metadata[:gems] = Digest::SHA2.hexdigest(File.read(gemfile_lock_path))
+      gem_layer.metadata[:gems] = Digest::SHA2.hexdigest(File.read("Gemfile.next.lock"))
       gem_layer.metadata[:stack] = @stack
       gem_layer.metadata[:ruby_version] = run_stdout(%q(ruby -v)).strip
       gem_layer.metadata[:rubygems_version] = run_stdout(%q(gem -v)).strip
@@ -340,6 +340,7 @@ EOF
     ENV["BUNDLE_BIN"] = bundler_binstubs_path
     ENV["BUNDLE_DEPLOYMENT"] = "1"
     ENV["BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE"] = "1" if bundler.needs_ruby_global_append_path?
+    ENV["BUNDLE_GEMFILE"] = "Gemfile.next"
   end
 
   # Sets up the environment variables for subsequent processes run by
@@ -373,7 +374,8 @@ EOF
     set_export_default "BUNDLE_WITHOUT", ENV["BUNDLE_WITHOUT"], layer
     set_export_default "BUNDLE_BIN", ENV["BUNDLE_BIN"], layer
     set_export_default "BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE", ENV["BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE"], layer if bundler.needs_ruby_global_append_path?
-    set_export_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"], layer if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
+    set_export_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"], layer if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.next.lock
+    set_export_default "BUNDLE_GEMFILE", "Gemfile.next", layer
   end
 
   # sets up the profile.d script for this buildpack
@@ -411,7 +413,8 @@ EOF
     set_env_default "BUNDLE_WITHOUT", ENV["BUNDLE_WITHOUT"]
     set_env_default "BUNDLE_BIN", ENV["BUNDLE_BIN"]
     set_env_default "BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE", ENV["BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE"] if bundler.needs_ruby_global_append_path?
-    set_env_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"] if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
+    set_env_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"] if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.next.lock
+    set_env_override "BUNDLE_GEMFILE", "Gemfile.next"
   end
 
   def warn_outdated_ruby
@@ -759,11 +762,11 @@ BUNDLE
       if bundler.windows_gemfile_lock?
         log("bundle", "has_windows_gemfile_lock")
 
-        File.unlink(gemfile_lock_path)
+        File.unlink("Gemfile.next.lock")
         ENV.delete("BUNDLE_DEPLOYMENT")
 
         warn(<<~WARNING, inline: true)
-          Removing `Gemfile.lock` because it was generated on Windows.
+          Removing `Gemfile.next.lock` because it was generated on Windows.
           Bundler will do a full resolve so native gems are handled properly.
           This may result in unexpected gem versions being used in your app.
           In rare occasions Bundler may not be able to resolve your dependencies at all.
@@ -776,7 +779,7 @@ BUNDLE
       bundle_command << "BUNDLE_WITHOUT='#{ENV["BUNDLE_WITHOUT"]}' "
       bundle_command << "BUNDLE_PATH=#{ENV["BUNDLE_PATH"]} "
       bundle_command << "BUNDLE_BIN=#{ENV["BUNDLE_BIN"]} "
-      bundle_command << "BUNDLE_DEPLOYMENT=#{ENV["BUNDLE_DEPLOYMENT"]} " if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
+      bundle_command << "BUNDLE_DEPLOYMENT=#{ENV["BUNDLE_DEPLOYMENT"]} " if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.next.lock
       bundle_command << "BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE=#{ENV["BUNDLE_GLOBAL_PATH_APPENDS_RUBY_SCOPE"]} " if bundler.needs_ruby_global_append_path?
       bundle_command << "bundle install -j4"
 
@@ -796,7 +799,7 @@ BUNDLE
 
         # we need to set BUNDLE_CONFIG and BUNDLE_GEMFILE for
         # codon since it uses bundler.
-        env_vars["BUNDLE_GEMFILE"] = "#{pwd}/#{gemfile_path}"
+        env_vars["BUNDLE_GEMFILE"] = "#{pwd}/Gemfile.next"
         env_vars["BUNDLE_CONFIG"] = "#{pwd}/.bundle/config"
         env_vars["CPATH"] = noshellescape("#{yaml_include}:$CPATH")
         env_vars["CPPATH"] = noshellescape("#{yaml_include}:$CPPATH")
@@ -845,7 +848,7 @@ BUNDLE
             correct this by running:
 
                 $ bundle update --ruby
-                $ git add Gemfile.lock
+                $ git add Gemfile.next.lock
                 $ git commit -m "update ruby version"
 
             If this does not solve the issue please see this documentation:
@@ -1324,17 +1327,5 @@ MESSAGE
     @bundler_cache.clear(stack)
     # need to reinstall language pack gems
     install_bundler_in_app(slug_vendor_base)
-  end
-
-  def current_gemfile
-    env("BUNDLE_GEMFILE") || "Gemfile"
-  end
-
-  def gemfile_path
-    Pathname.new(current_gemfile)
-  end
-
-  def gemfile_lock_path
-    Pathname.new("#{current_gemfile}.lock")
   end
 end
