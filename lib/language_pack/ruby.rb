@@ -138,20 +138,32 @@ WARNING
         valid_bundler_cache?(gem_layer.path, gem_layer.metadata)
       end
       install_bundler_in_app("#{gem_layer.path}/#{slug_vendor_base}")
+      puts "1. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       build_bundler
+      puts "2. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       # TODO post_bundler might need to be done in a new layer
       bundler.clean
+      puts "3. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.metadata[:gems] = Digest::SHA2.hexdigest(File.read("Gemfile.next.lock"))
+      puts "4. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.metadata[:stack] = @stack
+      puts "5. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.metadata[:ruby_version] = run_stdout(%q(ruby -v)).strip
+      puts "6. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.metadata[:rubygems_version] = run_stdout(%q(gem -v)).strip
+      puts "7. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.metadata[:buildpack_version] = BUILDPACK_VERSION
+      puts "8. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       gem_layer.write
+      puts "9. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
 
       create_database_yml
+      puts "10. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       # TODO replace this with multibuildpack stuff? put binaries in their own layer?
       install_binaries
+      puts "11. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
       run_assets_precompile_rake_task
+      puts "12. BUNDLE_GEMFILE: #{ENV["BUNDLE_GEMFILE"]}"
     end
     setup_profiled(ruby_layer_path: ruby_layer.path, gem_layer_path: gem_layer.path)
     setup_export(gem_layer)
