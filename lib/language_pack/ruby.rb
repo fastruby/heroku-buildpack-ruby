@@ -19,7 +19,7 @@ class LanguagePack::Ruby < LanguagePack::Base
   # detects if this is a valid Ruby app
   # @return [Boolean] true if it's a Ruby app
   def self.use?(bundler: nil)
-    File.exist?("Gemfile.next")
+    File.exist?(LanguagePack.gemfile_name)
   end
 
   def initialize(...)
@@ -306,7 +306,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     ENV["BUNDLE_PATH"] = "vendor/bundle"
     ENV["BUNDLE_BIN"] = "vendor/bundle/bin"
     ENV["BUNDLE_DEPLOYMENT"] = "1"
-    ENV["BUNDLE_GEMFILE"] = app_path.join("Gemfile.next").to_s
+    ENV["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
   end
 
   # Sets up the environment variables for subsequent processes run by
@@ -377,7 +377,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     set_env_default "BUNDLE_WITHOUT", ENV["BUNDLE_WITHOUT"]
     set_env_default "BUNDLE_BIN", ENV["BUNDLE_BIN"]
     set_env_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"] if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
-    set_env_override "BUNDLE_GEMFILE", "Gemfile.next"
+    set_env_override "BUNDLE_GEMFILE", LanguagePack.gemfile_name
   end
 
   def warn_outdated_ruby
@@ -620,28 +620,28 @@ class LanguagePack::Ruby < LanguagePack::Base
   end
 
   # runs bundler to install the dependencies
-  # If Gemfile.next is a symlink (a common next_rails dual-boot setup where
-  # Gemfile.next -> Gemfile), materialize it as a real file so that
-  # `File.basename(__FILE__)` inside the Gemfile resolves to "Gemfile.next"
-  # regardless of how the active Bundler version handles symlinks. The repo
-  # keeps the symlink for the developer workflow; the buildpack only rewrites
-  # it for the duration of this build.
-  def self.materialize_gemfile_next_symlink(app_path:, io:)
-    gemfile_next = app_path.join("Gemfile.next")
-    return unless gemfile_next.symlink?
+  # If the active Gemfile (typically Gemfile.next in dual-boot setups) is a
+  # symlink, materialize it as a real file so that `File.basename(__FILE__)`
+  # inside the Gemfile resolves to the symlink name regardless of how the
+  # active Bundler version handles symlinks. The repo keeps the symlink for
+  # the developer workflow; the buildpack only rewrites the working copy for
+  # the duration of this build.
+  def self.materialize_gemfile_symlink(app_path:, io:)
+    gemfile = app_path.join(LanguagePack.gemfile_name)
+    return unless gemfile.symlink?
 
-    target = File.readlink(gemfile_next.to_s)
-    target_path = gemfile_next.dirname.join(target)
+    target = File.readlink(gemfile.to_s)
+    target_path = gemfile.dirname.join(target)
     return unless target_path.exist?
 
-    io.topic("Materializing Gemfile.next symlink -> #{target}")
+    io.topic("Materializing #{LanguagePack.gemfile_name} symlink -> #{target}")
     contents = target_path.read
-    gemfile_next.delete
-    gemfile_next.write(contents)
+    gemfile.delete
+    gemfile.write(contents)
   end
 
   def self.build_bundler(app_path:, io:, bundler_cache:, bundler_version:, bundler_output:, ruby_version:)
-    materialize_gemfile_next_symlink(app_path: app_path, io: io)
+    materialize_gemfile_symlink(app_path: app_path, io: io)
 
     if app_path.join(".bundle/config").exist?
       warn(<<~WARNING, inline: true)
@@ -665,7 +665,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     io.topic("Installing dependencies using bundler #{bundler_version}")
     env_vars = {}
 
-    env_vars["BUNDLE_GEMFILE"] = app_path.join("Gemfile.next").to_s
+    env_vars["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
     env_vars["BUNDLE_CONFIG"] = app_path.join(".bundle/config").to_s
     env_vars["NOKOGIRI_USE_SYSTEM_LIBRARIES"] = "true"
     env_vars["BUNDLE_DISABLE_VERSION_CHECK"] = "true"
@@ -739,7 +739,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     else
       {}
     end
-    base["BUNDLE_GEMFILE"] = app_path.join("Gemfile.next").to_s
+    base["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
     base.merge(user_env_hash)
   end
 
