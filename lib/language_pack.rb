@@ -16,6 +16,9 @@ module LanguagePack
   # this a drop-in replacement when BUNDLE_GEMFILE is not set.
   def self.gemfile_name
     raw = ENV["BUNDLE_GEMFILE"].to_s
+    if raw.empty? && defined?(LanguagePack::ShellHelpers)
+      raw = LanguagePack::ShellHelpers.user_env_hash["BUNDLE_GEMFILE"].to_s
+    end
     raw.empty? ? "Gemfile" : File.basename(raw)
   end
 
