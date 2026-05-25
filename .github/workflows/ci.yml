@@ -31,6 +31,10 @@ jobs:
               xargs -0 shellcheck --check-sourced --color=always
 
   integration-test:
+      # Only runs on the upstream repo, which holds the required secrets
+      # (HEROKU_API_KEY, etc.). Forks don't have access, so the job would
+      # always fail at the Hatchet setup step.
+      if: github.repository == 'heroku/heroku-buildpack-ruby'
       runs-on: ubuntu-24.04
       env:
         HATCHET_APP_LIMIT: 300
