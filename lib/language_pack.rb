@@ -10,13 +10,13 @@ module LanguagePack
   end
 
   def self.gemfile_lock(app_path:)
-    path = app_path.join("Gemfile.lock")
+    path = app_path.join("Gemfile.next.lock")
     if path.exist?
       LanguagePack::Helpers::GemfileLock.new(
         contents: path.read
       )
     else
-      raise BuildpackError.new("Gemfile.lock required. Please check it in.")
+      raise BuildpackError.new("Gemfile.next.lock required. Please check it in.")
     end
   end
 

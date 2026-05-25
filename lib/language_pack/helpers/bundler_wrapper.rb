@@ -36,7 +36,7 @@ class LanguagePack::Helpers::BundlerWrapper
   def initialize(
     bundler_path:,
     bundler_version:,
-    gemfile_path: Pathname.new("./Gemfile"),
+    gemfile_path: Pathname.new("./Gemfile.next"),
     report: HerokuBuildReport::GLOBAL
   )
     @report = report
