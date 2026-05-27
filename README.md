@@ -49,15 +49,15 @@ For more information about using Ruby and buildpacks on Heroku, see these Dev Ce
 To use this buildpack, fork it on Github.  Push up changes to your fork, then create a test app with `--buildpack <your-github-url>` and push to it.
 
 
-## Next Rails
+## Deployment
 
-This buildpack supports Next Rails version, to configure it follow the steps below:
+This buildpack deploys the Rails version defined in Gemfile.next.lock.
+Here are the deployment steps for this buildpack
 
-1. Make sure your app can boot with the next Rails version locally.
-2. Go to the Settings tab of your Heroku app, and add the `BUNDLE_GEMFILE` config var with `Gemfile.next` as a value.
-3. Go to the Buildpacks section and remove the `heroku/ruby` buildpack from your app and add `https://github.com/fastruby/heroku-buildpack-ruby#add_gemfile_next_support`
-4. Deploy your app to Heroku.
-5. The Next Rails version should be installed and your app should boot.
+1. Make sure your app can boot with the Gemfile.next.lock file locally.
+2. Go to the Buildpacks section and remove the `heroku/ruby` buildpack from your app and add `https://github.com/fastruby/heroku-buildpack-ruby#use_gemfile_next`
+3. Deploy your app to Heroku.
+4. The build and release logs should confirm that the correct Rails version is deployed.
 
 ### Testing
 
