@@ -2,9 +2,6 @@
 
 ## [Unreleased]
 
-- Fork-only: honor `BUNDLE_GEMFILE` (typically a Heroku config var) so the buildpack can deploy either the current Gemfile or a next_rails-style alternative (e.g. `Gemfile.next`). Defaults to `Gemfile`, so behavior is unchanged when `BUNDLE_GEMFILE` is not set. Includes a build-time materializer that rewrites a `Gemfile.next` symlink as a real file so the `File.basename(__FILE__)` dual-boot trick works deterministically across Bundler versions.
-- Fork-only: skip the `integration-test` workflow on forks (the job requires Heroku API secrets only available on the upstream repo).
-
 
 ## [v359] - 2026-05-20
 
