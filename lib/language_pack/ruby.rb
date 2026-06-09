@@ -620,29 +620,7 @@ class LanguagePack::Ruby < LanguagePack::Base
   end
 
   # runs bundler to install the dependencies
-  # If the active Gemfile (typically Gemfile.next in dual-boot setups) is a
-  # symlink, materialize it as a real file so that `File.basename(__FILE__)`
-  # inside the Gemfile resolves to the symlink name regardless of how the
-  # active Bundler version handles symlinks. The repo keeps the symlink for
-  # the developer workflow; the buildpack only rewrites the working copy for
-  # the duration of this build.
-  def self.materialize_gemfile_symlink(app_path:, io:)
-    gemfile = app_path.join(LanguagePack.gemfile_name)
-    return unless gemfile.symlink?
-
-    target = File.readlink(gemfile.to_s)
-    target_path = gemfile.dirname.join(target)
-    return unless target_path.exist?
-
-    io.topic("Materializing #{LanguagePack.gemfile_name} symlink -> #{target}")
-    contents = target_path.read
-    gemfile.delete
-    gemfile.write(contents)
-  end
-
   def self.build_bundler(app_path:, io:, bundler_cache:, bundler_version:, bundler_output:, ruby_version:)
-    materialize_gemfile_symlink(app_path: app_path, io: io)
-
     if app_path.join(".bundle/config").exist?
       warn(<<~WARNING, inline: true)
         You have the `.bundle/config` file checked into your repository
