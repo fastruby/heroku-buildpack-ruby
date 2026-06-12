@@ -17,10 +17,14 @@ HerokuBuildReport.set_global(
 begin
   app_path = Pathname(ARGV[0])
   cache_path = Pathname(ARGV[1])
-  gemfile_lock = LanguagePack.gemfile_lock(app_path: app_path)
   Dir.chdir(app_path)
 
+  # Load user config vars from the env dir before we touch the Gemfile so that
+  # BUNDLE_GEMFILE (set as a Heroku config var) can steer which lockfile we
+  # read. Without this, gemfile_lock would always read Gemfile.lock regardless
+  # of the user's BUNDLE_GEMFILE setting.
   LanguagePack::ShellHelpers.initialize_env(ARGV[2])
+  gemfile_lock = LanguagePack.gemfile_lock(app_path: app_path)
   LanguagePack.call(
     app_path: app_path,
     cache_path: cache_path,

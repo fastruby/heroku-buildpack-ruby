@@ -19,7 +19,7 @@ class LanguagePack::Ruby < LanguagePack::Base
   # detects if this is a valid Ruby app
   # @return [Boolean] true if it's a Ruby app
   def self.use?(bundler: nil)
-    File.exist?("Gemfile")
+    File.exist?(LanguagePack.gemfile_name)
   end
 
   def initialize(...)
@@ -306,6 +306,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     ENV["BUNDLE_PATH"] = "vendor/bundle"
     ENV["BUNDLE_BIN"] = "vendor/bundle/bin"
     ENV["BUNDLE_DEPLOYMENT"] = "1"
+    ENV["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
   end
 
   # Sets up the environment variables for subsequent processes run by
@@ -331,6 +332,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     set_export_default "BUNDLE_WITHOUT", ENV["BUNDLE_WITHOUT"]
     set_export_default "BUNDLE_BIN", ENV["BUNDLE_BIN"]
     set_export_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
+    set_export_default "BUNDLE_GEMFILE", ENV["BUNDLE_GEMFILE"]
     default_config_vars.each do |key, value|
       set_export_default key, value
     end
@@ -375,6 +377,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     set_env_default "BUNDLE_WITHOUT", ENV["BUNDLE_WITHOUT"]
     set_env_default "BUNDLE_BIN", ENV["BUNDLE_BIN"]
     set_env_default "BUNDLE_DEPLOYMENT", ENV["BUNDLE_DEPLOYMENT"] if ENV["BUNDLE_DEPLOYMENT"] # Unset on windows since we delete the Gemfile.lock
+    set_env_override "BUNDLE_GEMFILE", LanguagePack.gemfile_name
   end
 
   def warn_outdated_ruby
@@ -640,7 +643,7 @@ class LanguagePack::Ruby < LanguagePack::Base
     io.topic("Installing dependencies using bundler #{bundler_version}")
     env_vars = {}
 
-    env_vars["BUNDLE_GEMFILE"] = app_path.join("Gemfile").to_s
+    env_vars["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
     env_vars["BUNDLE_CONFIG"] = app_path.join(".bundle/config").to_s
     env_vars["NOKOGIRI_USE_SYSTEM_LIBRARIES"] = "true"
     env_vars["BUNDLE_DISABLE_VERSION_CHECK"] = "true"
@@ -709,11 +712,13 @@ class LanguagePack::Ruby < LanguagePack::Base
   end
 
   def rake_env
-    if database_url
+    base = if database_url
       {"DATABASE_URL" => database_url}
     else
       {}
-    end.merge(user_env_hash)
+    end
+    base["BUNDLE_GEMFILE"] = app_path.join(LanguagePack.gemfile_name).to_s
+    base.merge(user_env_hash)
   end
 
   def database_url

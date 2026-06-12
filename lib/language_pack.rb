@@ -9,14 +9,31 @@ module LanguagePack
   module Helpers
   end
 
+  # Name of the Gemfile this buildpack should use. Honors the BUNDLE_GEMFILE
+  # env var (typically set via a Heroku config var) so a user can flip between
+  # the current and next Gemfile without changing buildpack URLs. Falls back
+  # to "Gemfile", the same default as the stock heroku/ruby buildpack, making
+  # this a drop-in replacement when BUNDLE_GEMFILE is not set.
+  def self.gemfile_name
+    raw = ENV["BUNDLE_GEMFILE"].to_s
+    if raw.empty? && defined?(LanguagePack::ShellHelpers)
+      raw = LanguagePack::ShellHelpers.user_env_hash["BUNDLE_GEMFILE"].to_s
+    end
+    raw.empty? ? "Gemfile" : File.basename(raw)
+  end
+
+  def self.lockfile_name
+    "#{gemfile_name}.lock"
+  end
+
   def self.gemfile_lock(app_path:)
-    path = app_path.join("Gemfile.lock")
+    path = app_path.join(lockfile_name)
     if path.exist?
       LanguagePack::Helpers::GemfileLock.new(
         contents: path.read
       )
     else
-      raise BuildpackError.new("Gemfile.lock required. Please check it in.")
+      raise BuildpackError.new("#{lockfile_name} required. Please check it in.")
     end
   end
 
