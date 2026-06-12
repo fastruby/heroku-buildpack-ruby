@@ -11,9 +11,7 @@ This is a fork of [Heroku's official Ruby buildpack](https://github.com/heroku/h
 > Example: an app built with Rails 6.1 only has 6.1 gems in its slug. If you then change `BUNDLE_GEMFILE` to `Gemfile.next` (Rails 7.0):
 >
 > - Heroku runs a new release with the changed env but does **not** rebuild the slug.
-> - If you have a `release:` command in your `Procfile`, it runs against Rails 7.0, whose gems are not in the slug, so it **fails**.
-> - Heroku reverts the config var change because the release failed.
-> - In the latest version of this fork the re-release no longer fails, but the env change is **not actually applied at runtime** either, so Heroku reports the var changed while the app keeps running the previous version. Confusing, but expected.
+> - The slug still has only the previous version's gems. In some cases the re-release may fail, and Heroku might revert the config var to its previous value. If that happens, the env change ends up **not actually applied at runtime**, so Heroku reports the var changed while the app keeps running the previous version. Confusing, but expected.
 >
 > **To switch versions: change `BUNDLE_GEMFILE` and then trigger a deploy (e.g. push a commit) so the correct gems are installed at build time.** Do not rely on flipping the config var by itself.
 
